@@ -1,0 +1,177 @@
+;---функции---;
+copy(){
+	clipboard := "" ;очистка буфера обмена
+	while (clipboard != "")
+		continue
+	send ^c
+	clipwait 
+	return clipboard
+}
+	
+;---запуск скрипта. файл шаблона должен быть уже открыт---;
+!q:: 
+	
+	ifWinActive, Сертификат происхождения товара.xlsm - Excel
+	{
+		; потенциальные проблемы: отсутствие ГТД в 1С в поступлениях
+		; полный текст заказа с датой
+		; необходимость ссылки 
+		; проблема долгого открытия 1с
+		msgbox, Запустить заполнение шаблона "Сертификат"
+		;проставляем дату
+		send {esc}^g 
+		winwait Переход
+		send {raw}Расчет!D2
+		send {enter}
+		sleep 200
+		send %a_dd%.%a_mm% 
+		sleep 100
+		send {enter}^g 
+		;заполнение листа Расчет 
+		winwait Переход
+		send {raw}Расчет!A7
+		send {enter}
+		sleep 200
+		;переход в 1с
+		setTitleMatchMode 2		
+		;winActivate База ahk_exe 1cv8c.exe 
+		inputbox url
+		;e1c://server/Fury/KIS_RI4_82#e1cib/data/Документ.ПоступлениеТоваровУслуг?ref=85ede699e709faf0487e2fa22ee3b04b
+		run "C:\Program Files\1cv8\common\1cestart.exe" /URL "%url%", C:\Program Files\1cv8\common
+		;sleep 500
+		winwait База ahk_exe 1cv8c.exe
+		winActivate
+		if WinActive(" База ahk_exe 1cv8c.exe")
+		{	
+			;-----костыль на случай курсора хз где
+			sleep 500
+			send {esc}
+			send +{f11}
+			clipboard := url
+			send ^v
+			send {enter}
+			sleep 800
+			;-----
+			send +{tab}
+			ptu := copy()
+			send {tab 2}
+			contragent := copy()
+			send ^+{f4}{tab 18}^+{f4}{tab 3}
+			ca_country := copy()
+			send {esc 2}
+			send {tab 3}
+			full_order := RegExReplace(copy(), "Заказ поставщику ", "")
+			order := RegExReplace(full_order, SubStr(full_order, InStr(full_order, " ") + 1), "")
+			send {tab 2}
+			org := copy()
+			send {tab 2}
+			curr := copy()
+			send {tab 4}
+			invoice_date := copy()
+			send {tab}
+			invoice := copy()
+			;--- товар
+			send {tab 3}{right}
+			product := copy()
+			send {left}			
+			loop 28
+				send +{tab}
+			send {enter}
+			sleep 2000
+			;--- этот кусок будет работать только при наличии гтд в документах.
+			;--- плюс если буфер обмена норм
+			send ^fгтд 
+			send {enter}
+			sleep 500
+			;буфер обмена после поиска
+			send ^c
+			sleep 500
+			
+			if (clipboard = product){
+				msgbox ГТД не найдена, сорян.
+				send {esc}
+				send {tab 39}
+				product_cost := RegExReplace(copy(), " ", "")
+				send {esc}
+				
+			}
+			else{
+				tooltip
+				send {enter}
+				sleep 1000
+				send {tab 5}
+				cust := copy()
+				send {tab 2}
+				gtd := copy()
+				send {esc 2}
+				send {tab 39}
+				product_cost := RegExReplace(copy(), " ", "")
+				send {esc}
+			}
+			
+			; ---вставка данных
+			WinActivate Сертификат происхождения товара.xlsm - Excel 
+			winwaitActive Сертификат происхождения товара.xlsm - Excel 
+			; send !{tab}	;переход в шаблон
+			sleep 500
+			clipboard = %contragent%`t%product%`t%invoice%`t%invoice_date%`t%order%`t%gtd%`t
+			send ^v
+			sleep 200
+			send {esc}^g 
+			winwait Переход
+			send {raw}Расчет!H7
+			send {enter}
+			sleep 200
+			clipboard = %cust%
+			send ^v
+			sleep 200
+			send {esc}^g 
+			winwait Переход
+			send {raw}Расчет!U7
+			send {enter}
+			sleep 200
+			clipboard = %curr%
+			send ^v
+			; заполнение листа РП
+			sleep 200
+			send {esc}^g 
+			winwait Переход
+			send {raw}РП!A2
+			send {enter}
+			sleep 200
+			clipboard = %org%
+			send ^v{right 4}
+			sleep 200
+			clipboard = %ca_country%
+			send ^v
+			sleep 200
+			send {esc}^g 
+			winwait Переход
+			send {raw}РП!R2
+			send {enter}
+			sleep 200
+			clipboard = %ptu%
+			send ^v
+			sleep 200
+			send {esc}^g 
+			winwait Переход
+			send {raw}Расчет!S11
+			send {enter}
+			sleep 200
+			clipboard = %product_cost%
+			sleep 200
+			send ^v
+			tooltip
+			msgbox заполнение завершено
+
+			;e1c://server/Fury/KIS_RI4_82#e1cib/data/Документ.ПоступлениеТоваровУслуг?ref=85ede699e709faf0487e2fa22ee3b04b
+			clipboard = %url%
+			
+		}
+		else 
+		{
+			msgbox не удалось открыть поступление. какая-то хрень.
+		}
+		
+		return
+	}
