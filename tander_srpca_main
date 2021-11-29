@@ -14,6 +14,7 @@ copy(){
 ;---Назначаю Alt+c сочетанием "умного копирования" из поступления 1с 
 ;-----(возможно, позднее также из заявки otrs)
 !c::
+{
 	setTitleMatchMode 2
 	if WinActive(" База ahk_exe 1cv8c.exe"){
 		msgbox умное копирование данных из ПТУ
@@ -32,6 +33,9 @@ copy(){
 		;ptu_date := copy() 	;надо бы узнать, используется ли где-нибудь дата поступления
 		send {tab}
 		contragent := copy()
+		send ^+{f4}{tab 18}^+{f4}{tab 3}
+		ca_country := copy()
+		send {esc 2}
 		send {tab 3} ;договор, конечное мх, заказ
 		full_order := RegExReplace(copy(), "Заказ поставщику ", "")
 		order := RegExReplace(full_order, SubStr(full_order, InStr(full_order, " ") + 1), "")
@@ -51,10 +55,42 @@ copy(){
 	else{
 		msgbox умное копирование пока доступно только для пту 1с
 	}
+	return
+}
+;---Назначаю Alt+V сочетанием для "умной вставки" данных в Access, расчёты 1с, запросы к подразделениям итп
+!v:: 
+{
+	setTitleMatchMode 2
+	if WinActive("Access - Учет претензий КА"){
+	msgbox только Таможенная очистка, ок?
+	;---УПКА - Доп.услуги - Таможенная очистка
+	send {tab}{home}
+	clipboard = %org%
+	send ^v
+	send {right 5}	;дату вставлять будем в дневное время, ок?
+	send % (a_hour < 16) and (a_hour > 6)? "" : ""	;%a_dd%.%a_mm%.%a_yyyy%
+	send {right}
+	clipboard = %contragent%
+	send ^v
+	send {right 2}	;наим поставщика (всегда пусто), страна
+	clipboard = %ca_country%
+	send ^v {right}
+	clipboard = %order%
+	send ^v {right}
+	clipboard = %invoice%
+	send ^v{right}
+	send 1{right}	;случай с несколькими инвойсами внесём позднее
+	send {right 2}	;умное копирование номера и даты заявки из otrs внесём позднее
+	clipboard = %curr%
+	send ^v
+	; сумму и комментарий из расчёта, номер и дату заявки добавить бы в умное копирование 
+	}
+	return
+}
 
 ;---Назначаю Alt+Q сочетанием заполнения Excel-шаблонов---;
 !q:: 
-	
+{	
 	ifWinActive, Сертификат происхождения товара.xlsm - Excel
 	{
 		; потенциальные проблемы: отсутствие ГТД в 1С в поступлениях
@@ -214,3 +250,4 @@ copy(){
 		
 		return
 	}
+}
