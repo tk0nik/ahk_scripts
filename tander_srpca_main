@@ -7,16 +7,60 @@ copy(){
 	clipwait 
 	return clipboard
 }
-	
-;---запуск скрипта. файл шаблона должен быть уже открыт---;
+
+;--- мелочь: вставка даты. ---;
+^;::send %a_dd%.%a_mm%.%a_yyyy% {right}
+
+;---Назначаю Alt+c сочетанием "умного копирования" из поступления 1с 
+;-----(возможно, позднее также из заявки otrs)
+!c::
+	setTitleMatchMode 2
+	if WinActive(" База ahk_exe 1cv8c.exe"){
+		msgbox умное копирование данных из ПТУ
+		send ^{f11}
+		sleep 400  
+		send {enter}
+		send {enter}
+		send {esc}
+		send +{f11}
+		send ^v
+		send {enter}
+		sleep 200
+		send +{tab}
+		ptu := copy()
+		send {tab}
+		;ptu_date := copy() 	;надо бы узнать, используется ли где-нибудь дата поступления
+		send {tab}
+		contragent := copy()
+		send {tab 3} ;договор, конечное мх, заказ
+		full_order := RegExReplace(copy(), "Заказ поставщику ", "")
+		order := RegExReplace(full_order, SubStr(full_order, InStr(full_order, " ") + 1), "")
+		;можно добавить вычисление даты заказа
+		send {tab 2}	;вид операции, организвция
+		org := copy()
+		send {tab 2}	;подразделение-получатель, валюта КА
+		curr := copy()
+		send {tab 4}	;курс на датц поступления и кратность, комментарий
+		invoice_date := copy()
+		send {tab}
+		invoice := copy()
+		
+		msgbox % invoice
+		
+	}
+	else{
+		msgbox умное копирование пока доступно только для пту 1с
+	}
+
+;---Назначаю Alt+Q сочетанием заполнения Excel-шаблонов---;
 !q:: 
 	
 	ifWinActive, Сертификат происхождения товара.xlsm - Excel
 	{
 		; потенциальные проблемы: отсутствие ГТД в 1С в поступлениях
-		; полный текст заказа с датой
 		; необходимость ссылки 
 		; проблема долгого открытия 1с
+		;возможность оптимизации: добавить чтение зеленых ячеек из гтд 1с, запилить авто преференции
 		msgbox, Запустить заполнение шаблона "Сертификат"
 		;проставляем дату
 		send {esc}^g 
@@ -34,9 +78,7 @@ copy(){
 		sleep 200
 		;переход в 1с
 		setTitleMatchMode 2		
-		;winActivate База ahk_exe 1cv8c.exe 
 		inputbox url
-		;e1c://server/Fury/KIS_RI4_82#e1cib/data/Документ.ПоступлениеТоваровУслуг?ref=85ede699e709faf0487e2fa22ee3b04b
 		run "C:\Program Files\1cv8\common\1cestart.exe" /URL "%url%", C:\Program Files\1cv8\common
 		;sleep 500
 		winwait База ahk_exe 1cv8c.exe
@@ -65,7 +107,7 @@ copy(){
 			send {tab 2}
 			org := copy()
 			send {tab 2}
-			curr := copy()
+			curr := copy()	;валюта
 			send {tab 4}
 			invoice_date := copy()
 			send {tab}
@@ -78,8 +120,7 @@ copy(){
 				send +{tab}
 			send {enter}
 			sleep 2000
-			;--- этот кусок будет работать только при наличии гтд в документах.
-			;--- плюс если буфер обмена норм
+			;--- этот кусок будет работать только при нормальной скорости работы 1с и буфера обмена windows
 			send ^fгтд 
 			send {enter}
 			sleep 500
@@ -112,7 +153,7 @@ copy(){
 			; ---вставка данных
 			WinActivate Сертификат происхождения товара.xlsm - Excel 
 			winwaitActive Сертификат происхождения товара.xlsm - Excel 
-			; send !{tab}	;переход в шаблон
+			;Заполнение листа Расчет
 			sleep 500
 			clipboard = %contragent%`t%product%`t%invoice%`t%invoice_date%`t%order%`t%gtd%`t
 			send ^v
@@ -153,6 +194,7 @@ copy(){
 			clipboard = %ptu%
 			send ^v
 			sleep 200
+			;заполнение стоимости на листе Расчет
 			send {esc}^g 
 			winwait Переход
 			send {raw}Расчет!S11
@@ -163,10 +205,7 @@ copy(){
 			send ^v
 			tooltip
 			msgbox заполнение завершено
-
-			;e1c://server/Fury/KIS_RI4_82#e1cib/data/Документ.ПоступлениеТоваровУслуг?ref=85ede699e709faf0487e2fa22ee3b04b
 			clipboard = %url%
-			
 		}
 		else 
 		{
