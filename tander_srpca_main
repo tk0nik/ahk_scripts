@@ -1,3 +1,6 @@
+;---настройки---;
+setTitleMatchMode 2
+
 ;---функции---;
 copy(){
 	clipboard := "" ;очистка буфера обмена
@@ -8,14 +11,25 @@ copy(){
 	return clipboard
 }
 
-;--- мелочь: вставка даты. ---;
-^1::send %a_dd%.%a_mm%.%a_yyyy%
+;--- мелочь: ctrl+0 - вставка текущей даты. ---;
+^0::
+{
+	if WinActive(" База ahk_exe 1cv8c.exe"){
+		send %a_dd%.%a_mm%.%a_yyyy%
+	}
+	else {
+		send %a_dd%.%a_mm%.%a_yyyy%
+	}
+return
+}
+;---мелочь: ctrl+1 - вставка заказа. ошибки не проверяет ---;
+^1:: send % order
+^2:: send % invoice
 
 ;---Назначаю Alt+c сочетанием "умного копирования" из поступления 1с 
 ;-----(возможно, позднее также из заявки otrs)
 !c::
 {
-	setTitleMatchMode 2
 	if WinActive(" База ahk_exe 1cv8c.exe"){
 		msgbox умное копирование данных из ПТУ
 		send ^{f11}
@@ -53,7 +67,53 @@ copy(){
 		
 	}
 	else if (WinActive("Подробно - Заявка - OTRS ahk_exe chrome.exe")){
+	; малейшее обновление в архитектуре otrs - и вся эта хрень рухнет
 		msgbox умное копирование данных из заявки OTRS
+		send ^u
+		sleep 1000
+		send ^f
+		sleep 200
+		send <title>
+		sleep 200
+		send {enter}{esc}
+		sleep 300
+		send ^+{right}
+		sleep 200
+		ticket := RegExReplace(RegExReplace(copy(), "<title>", ""), " ", "")	;номер заявки otrs 
+		msgbox % ticket
+		send ^f<label>Создан/а:</label>{enter}
+		sleep 300
+		send {esc}
+		send +{down}
+		send ^+{right}
+		ticket_date := SubStr(copy(), 75, 10)
+		msgbox % ticket_date
+		send ^w
+		send ^fсумма
+		sleep 200
+		send {enter}{esc}
+		send +{end}
+		ticket_sum := RegExReplace(RegExReplace(RegExReplace(copy(), " ", ""), "сумма", ""),"руб.", "")
+		msgbox % ticket_sum
+		send ^fзаказ
+		sleep 200
+		send {enter}{esc}
+		send +{end}
+		order := RegExReplace(RegExReplace(copy(), " ", ""), "заказ", "")
+		send ^fинвойс
+		sleep 200
+		send {enter}{esc}
+		send +{end}
+		invoice := RegExReplace(RegExReplace(copy(), " ", ""), "инвойс", "")
+		msgbox % invoice
+		send ^f
+		send тип претензии
+		send {enter}{esc}
+		sleep 200
+		send +{end}
+		ticket_comment := copy()
+		msgbox % ticket_comment
+		msgbox копирование из otrs завершено
 	}
 	
 	else{
@@ -78,16 +138,24 @@ copy(){
 	send ^v
 	send {right 2}	;наим поставщика (всегда пусто), страна
 	clipboard = %ca_country%
+	sleep 400
 	send ^v {right}
 	clipboard = %order%
 	send ^v {right}
 	clipboard = %invoice%
+	send ^v{tab}
+	send 1
+	send {tab}
+	clipboard = %ticket%
+	sleep 400
 	send ^v{right}
-	send 1{right}	;случай с несколькими инвойсами внесём позднее
-	send {right 2}	;умное копирование номера и даты заявки из otrs внесём позднее
+	clipboard = %ticket_date%
+	send ^v{right}
 	clipboard = %curr%
 	send ^v
-	; сумму и комментарий из расчёта, номер и дату заявки добавить бы в умное копирование 
+	send {tab 4}
+	clipboard = %ticket_comment%
+	send ^v{home}
 	}
 	return
 }
