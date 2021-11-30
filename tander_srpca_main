@@ -9,7 +9,7 @@ copy(){
 }
 
 ;--- мелочь: вставка даты. ---;
-^;::send %a_dd%.%a_mm%.%a_yyyy% {right}
+^1::send %a_dd%.%a_mm%.%a_yyyy%
 
 ;---Назначаю Alt+c сочетанием "умного копирования" из поступления 1с 
 ;-----(возможно, позднее также из заявки otrs)
@@ -28,7 +28,7 @@ copy(){
 		send {enter}
 		sleep 200
 		send +{tab}
-		ptu := copy()
+		ptu := RegExReplace(copy()," ","")
 		send {tab}
 		;ptu_date := copy() 	;надо бы узнать, используется ли где-нибудь дата поступления
 		send {tab}
@@ -52,6 +52,10 @@ copy(){
 		msgbox % invoice
 		
 	}
+	else if (WinActive("Подробно - Заявка - OTRS ahk_exe chrome.exe")){
+		msgbox умное копирование данных из заявки OTRS
+	}
+	
 	else{
 		msgbox умное копирование пока доступно только для пту 1с
 	}
