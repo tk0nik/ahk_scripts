@@ -15,16 +15,37 @@ copy(){
 ^0::
 {
 	if WinActive(" База ahk_exe 1cv8c.exe"){
-		send %a_dd%.%a_mm%.%a_yyyy%
+		send %a_dd%%a_mm%%a_yyyy%
 	}
 	else {
 		send %a_dd%.%a_mm%.%a_yyyy%
 	}
 return
 }
-;---мелочь: ctrl+1 - вставка заказа. ошибки не проверяет ---;
+;---мелочи. ошибки не проверяет ---;
 ^1:: send % order
+^+1:: 
+{
+	clipboard = %invoice_date%
+	send ^v
+}
 ^2:: send % invoice
+^+2:: 
+{
+	clipboard = %invoice_date%
+	send ^v
+}
+^3:: send % ptu
+^+3:: send % ptu_date
+^4:: send % ticket
+^+4:: 
+{
+	clipboard = %ticket_date%
+	send ^v
+}
+^+!4:: send % ticket_sum
+
+
 
 ;---Назначаю Alt+c сочетанием "умного копирования" из поступления 1с 
 ;-----(возможно, позднее также из заявки otrs)
@@ -52,7 +73,7 @@ return
 		send {esc 2}
 		send {tab 3} ;договор, конечное мх, заказ
 		full_order := RegExReplace(copy(), "Заказ поставщику ", "")
-		order := RegExReplace(full_order, SubStr(full_order, InStr(full_order, " ") + 1), "")
+		order := RegExReplace(RegExReplace(full_order, SubStr(full_order, InStr(full_order, " ") + 1), ""), " ", "")
 		;можно добавить вычисление даты заказа
 		send {tab 2}	;вид операции, организвция
 		org := copy()
@@ -70,11 +91,11 @@ return
 	; малейшее обновление в архитектуре otrs - и вся эта хрень рухнет
 		msgbox умное копирование данных из заявки OTRS
 		send ^u
-		sleep 1000
+		sleep 1200
 		send ^f
-		sleep 200
+		sleep 300
 		send <title>
-		sleep 200
+		sleep 300
 		send {enter}{esc}
 		sleep 300
 		send ^+{right}
@@ -117,7 +138,7 @@ return
 	}
 	
 	else{
-		msgbox умное копирование пока доступно только для пту 1с
+		msgbox умное копирование пока доступно только из пту 1с или заявки OTRS
 	}
 	return
 }
@@ -145,12 +166,18 @@ return
 	clipboard = %invoice%
 	send ^v{tab}
 	send 1
+	sleep 200
 	send {tab}
+	sleep 200
 	clipboard = %ticket%
 	sleep 400
-	send ^v{right}
+	send ^v
+	send {tab}
+	sleep 200
 	clipboard = %ticket_date%
-	send ^v{right}
+	sleep 300
+	send ^v
+	send {tab}
 	clipboard = %curr%
 	send ^v
 	send {tab 4}
