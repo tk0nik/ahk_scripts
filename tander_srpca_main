@@ -26,32 +26,49 @@ return
 ^1:: send % order
 ^+1:: 
 {
-	clipboard = %invoice_date%
+	clipboard = %order_date%
 	send ^v
+	return
 }
 ^2:: send % invoice
 ^+2:: 
 {
 	clipboard = %invoice_date%
 	send ^v
+	return
 }
 ^3:: send % ptu
 ^+3:: send % ptu_date
-^4:: send % ticket
+^4:: 
+{
+	clipboard = %ticket%
+	send ^v
+	return
+}
 ^+4:: 
 {
 	clipboard = %ticket_date%
 	send ^v
+	return
 }
 ^+!4:: send % ticket_sum
-
-
-
-;---Назначаю Alt+c сочетанием "умного копирования" из поступления 1с 
-;-----(возможно, позднее также из заявки otrs)
-!c::
+^5:: 
 {
-	if WinActive(" База ahk_exe 1cv8c.exe"){
+	clipboard = %contragent%
+	send ^v
+	return
+}
+^+5:: send % ca_country
+^6:: send % transport_doc
+^+6:: send % transport_doc_date
+^7:: send % product
+
+
+;---Назначаю Alt+c сочетанием "умного копирования"
+!c::
+{	
+	;-- из 1с
+	if WinActive(" База ahk_exe 1cv8c.exe"){	
 		msgbox умное копирование данных из ПТУ
 		send ^{f11}
 		sleep 400  
@@ -74,7 +91,7 @@ return
 		send {tab 3} ;договор, конечное мх, заказ
 		full_order := RegExReplace(copy(), "Заказ поставщику ", "")
 		order := RegExReplace(RegExReplace(full_order, SubStr(full_order, InStr(full_order, " ") + 1), ""), " ", "")
-		;можно добавить вычисление даты заказа
+		order_date := SubStr(SubStr(full_order, InStr(full_order, " ") + 1), 3, 11)
 		send {tab 2}	;вид операции, организвция
 		org := copy()
 		send {tab 2}	;подразделение-получатель, валюта КА
@@ -83,39 +100,47 @@ return
 		invoice_date := copy()
 		send {tab}
 		invoice := copy()
+		send {tab} 
+		transport_doc_date := copy()
+		send {tab} 
+		transport_doc := copy()
+		send {tab 2}
+		product:= copy()
 		
-		msgbox % invoice
+		msgbox Поступление: %ptu%`nКА: %contragent%`nСтрана КА: %ca_country%`nЗаказ: %order%`nДата заказа: %order_date%`nИнвойс: %invoice%`nДата инвойса: %invoice_date%`nКоносамент/CMR: %transport_doc%`nДата коносамента/cmr: %transport_doc_date%`nТовар: %product%`nОрганизация: %org%`nВалюта: %curr%
 		
 	}
+	;--из OTRS
 	else if (WinActive("Подробно - Заявка - OTRS ahk_exe chrome.exe")){
 	; малейшее обновление в архитектуре otrs - и вся эта хрень рухнет
 		msgbox умное копирование данных из заявки OTRS
 		send ^u
 		sleep 1200
 		send ^f
-		sleep 300
+		sleep 400
 		send <title>
-		sleep 300
-		send {enter}{esc}
+		sleep 400
+		send {enter}
+		sleep 200
+		send {esc}
 		sleep 300
 		send ^+{right}
 		sleep 200
 		ticket := RegExReplace(RegExReplace(copy(), "<title>", ""), " ", "")	;номер заявки otrs 
-		msgbox % ticket
 		send ^f<label>Создан/а:</label>{enter}
 		sleep 300
 		send {esc}
 		send +{down}
 		send ^+{right}
 		ticket_date := SubStr(copy(), 75, 10)
-		msgbox % ticket_date
 		send ^w
 		send ^fсумма
 		sleep 200
 		send {enter}{esc}
 		send +{end}
-		ticket_sum := RegExReplace(RegExReplace(RegExReplace(copy(), " ", ""), "сумма", ""),"руб.", "")
-		msgbox % ticket_sum
+		ticket_sum := RegExReplace(copy(), " ", "")
+		ticket_sum := RegExReplace(RegExReplace(ticket_sum, "сумма", ""),"руб.", "")
+		sleep 200
 		send ^fзаказ
 		sleep 200
 		send {enter}{esc}
@@ -126,19 +151,44 @@ return
 		send {enter}{esc}
 		send +{end}
 		invoice := RegExReplace(RegExReplace(copy(), " ", ""), "инвойс", "")
-		msgbox % invoice
 		send ^f
 		send тип претензии
 		send {enter}{esc}
 		sleep 200
 		send +{end}
 		ticket_comment := copy()
-		msgbox % ticket_comment
+		msgbox Заявка: %ticket%`nДата заявки: %ticket_date%`nЗаказ: %order%`nИнвойс: %invoice%`nСумма: %ticket_sum%`nКомментарий: %ticket_comment%
 		msgbox копирование из otrs завершено
 	}
 	
+	else if (WinActive("Унифицированный реестр.xlsx ahk_exe EXCEL.EXE")){
+		msgbox Запускаю умное копирование из Унифицированного Реестра
+		send {esc}{home}{tab 2}
+		contragent := copy()
+		msgbox % contragent
+		send {tab}
+		invoice := copy()
+		msgbox % invoice
+		send {tab}
+		ticket_comment := RegExReplace(copy(), " R:.*", "")	;Комментарий	
+		msgbox % ticket_comment
+		send {tab}
+		ticket_sum := RegExReplace(copy(), " ", "")
+		msgbox % ticket_sum
+		send {tab}
+		container := copy()
+		msgbox % container
+		send {tab 2}	;пропущен коносамент/cmr
+		order := RegExReplace(copy(), " ", "")
+		msgbox % order
+		send {tab 3}
+		ticket := RegExReplace(copy(), " ", "")
+		msgbox % ticket
+		msgbox копирование завершено
+	}
+	
 	else{
-		msgbox умное копирование пока доступно только из пту 1с или заявки OTRS
+		msgbox умное копирование пока доступно только из пту 1с, УР или заявки OTRS
 	}
 	return
 }
@@ -152,19 +202,24 @@ return
 	send {tab}{home}
 	clipboard = %org%
 	send ^v
+	sleep 200
 	send {right 5}	;дату вставлять будем в дневное время, ок?
-	send % (a_hour < 16) and (a_hour > 6)? "" : ""	;%a_dd%.%a_mm%.%a_yyyy%
+	;send % (a_hour < 16) and (a_hour > 6)? "" : ""	;%a_dd%.%a_mm%.%a_yyyy%
 	send {right}
 	clipboard = %contragent%
 	send ^v
+	sleep 200
 	send {right 2}	;наим поставщика (всегда пусто), страна
 	clipboard = %ca_country%
 	sleep 400
 	send ^v {right}
+	sleep 200
 	clipboard = %order%
 	send ^v {right}
+	sleep 200
 	clipboard = %invoice%
 	send ^v{tab}
+	sleep 200
 	send 1
 	sleep 200
 	send {tab}
@@ -178,8 +233,10 @@ return
 	sleep 300
 	send ^v
 	send {tab}
+	sleep 200
 	clipboard = %curr%
 	send ^v
+	sleep 200
 	send {tab 4}
 	clipboard = %ticket_comment%
 	send ^v{home}
@@ -190,13 +247,13 @@ return
 ;---Назначаю Alt+Q сочетанием заполнения Excel-шаблонов---;
 !q:: 
 {	
-	ifWinActive, Сертификат происхождения товара.xlsm - Excel
+	if WinActive("Сертификат происхождения товара.xlsm - Excel")
 	{
 		; потенциальные проблемы: отсутствие ГТД в 1С в поступлениях
 		; необходимость ссылки 
 		; проблема долгого открытия 1с
 		;возможность оптимизации: добавить чтение зеленых ячеек из гтд 1с, запилить авто преференции
-		msgbox, Запустить заполнение шаблона "Сертификат"
+		msgbox Запустить заполнение шаблона "Сертификат"
 		;проставляем дату
 		send {esc}^g 
 		winwait Переход
@@ -279,6 +336,16 @@ return
 				cust := copy()
 				send {tab 2}
 				gtd := copy()
+				;---- добудем данные о таможенных штуках
+				send {tab 12}
+				cust_tax := copy()	;ставка пошлины
+				send {tab 7}
+				nds := RegExReplace(copy(), "%", "")	;ставка ндс
+				sleep 200
+				send {tab 2}
+				cust_cost := copy()	; таможенная стоимость
+				sleep 200
+				;----
 				send {esc 2}
 				send {tab 39}
 				product_cost := RegExReplace(copy(), " ", "")
@@ -338,7 +405,32 @@ return
 			clipboard = %product_cost%
 			sleep 200
 			send ^v
-			tooltip
+			send {esc}^g 
+			winwait Переход
+			send {raw}Расчет!K7
+			send {enter}
+			sleep 200
+			clipboard = %cust_tax%
+			sleep 200
+			send ^v
+			sleep 200
+			send {tab 2}
+			sleep 200
+			clipboard = %nds%
+			sleep 200
+			send ^v
+			sleep 200
+			send {esc}^g 
+			winwait Переход
+			send {raw}Расчет!J7
+			send {enter}
+			sleep 200
+			clipboard = %cust_cost%
+			sleep 200
+			send ^v
+			sleep 200
+			
+		
 			msgbox заполнение завершено
 			clipboard = %url%
 		}
@@ -348,5 +440,72 @@ return
 		}
 		
 		return
+	}
+	else if WinActive("Хранение (РЦ).xlsm - Excel"){
+		msgbox Запустить заполнение шаблона "Хранение (РЦ)"
+		;проставляем дату
+		send {esc}^g 
+		winwait Переход
+		send {raw}Расчет!C2
+		send {enter}
+		sleep 200
+		send %a_dd%.%a_mm% 
+		sleep 100	
+		;переход в 1с
+		inputbox url
+		run "C:\Program Files\1cv8\common\1cestart.exe" /URL "%url%", C:\Program Files\1cv8\common
+		;sleep 500
+		winwait База ahk_exe 1cv8c.exe
+		winActivate
+		send !c
+		msgbox вставка данных
+		WinActivate Хранение (РЦ).xlsm - Excel 
+		winwaitActive Хранение (РЦ).xlsm - Excel
+		send {enter}^g 
+		;заполнение листа Расчет 
+		winwait Переход
+		send {raw}Расчет!A7
+		send {enter}
+		sleep 200
+		clipboard = %contragent%`t%invoice%`t%order%`t%order_date%`t%product%
+		sleep 500
+		send ^v
+		sleep 200
+		send {esc}^g 
+		winwait Переход
+		send {raw}Расчет!J7
+		send {enter}
+		sleep 200
+		clipboard = %curr%
+		sleep 200
+		send ^v
+		sleep 200
+		;Заполнение листа РП
+		send {esc}^g 
+		winwait Переход
+		send {raw}РП!A2
+		send {enter}
+		sleep 200
+		clipboard = %org%
+		send ^v{right 4}
+		sleep 200
+		clipboard = %ca_country%
+		send ^v
+		sleep 200
+		send {esc}^g 
+		winwait Переход
+		send {raw}РП!R2
+		send {enter}
+		sleep 200
+		clipboard = %ptu%
+		sleep 200
+		send ^v
+		sleep 200
+		send {tab 2}
+		send %invoice_date%
+		sleep 200
+		
+		clipboard := url
+		return 
 	}
 }
