@@ -8,7 +8,7 @@ copy(){
 		continue
 	send ^c
 	clipwait 
-	return clipboard
+	return Trim(clipboard, "`n`r`t ")
 }
 
 ;--- мелочь: ctrl+0 - вставка текущей даты. ---;
@@ -30,7 +30,12 @@ return
 	send ^v
 	return
 }
-^2:: send % invoice
+^2:: 
+{
+	clipboard = %invoice%
+	send ^v
+	return
+}
 ^+2:: 
 {
 	clipboard = %invoice_date%
@@ -62,7 +67,41 @@ return
 ^6:: send % transport_doc
 ^+6:: send % transport_doc_date
 ^7:: send % product
+^8:: send % org 
+^+8:: 
+{
+	if (org = "Ритейл Импорт ООО") {
+	send Подразделения организации Ритейл Импорт ООО
+	}
+	else if (org = "Тандер АО"){
+	send ГК
+	}
+	return
+}
+!r::
+{
+	if WinActive("Свойства: пту"){
+		send {right}{left}
+		loop 12
+			send ^+{left}
+		send ^v
+		send +{tab}{left}{tab}{end}
+		send " "
+		send ^3
+		sleep 200
+		send {enter}
+	}
+	return
+}
 
+; !w::
+; {
+	; loop 1000{
+	; send waiting
+	; sleep 20000
+	; }
+	; return
+; }
 
 ;---Назначаю Alt+c сочетанием "умного копирования"
 !c::
@@ -96,6 +135,7 @@ return
 		org := copy()
 		send {tab 2}	;подразделение-получатель, валюта КА
 		curr := copy()
+		
 		send {tab 4}	;курс на датц поступления и кратность, комментарий
 		invoice_date := copy()
 		send {tab}
@@ -160,32 +200,26 @@ return
 		msgbox Заявка: %ticket%`nДата заявки: %ticket_date%`nЗаказ: %order%`nИнвойс: %invoice%`nСумма: %ticket_sum%`nКомментарий: %ticket_comment%
 		msgbox копирование из otrs завершено
 	}
-	
+	;--- из УР 
 	else if (WinActive("Унифицированный реестр.xlsx ahk_exe EXCEL.EXE")){
 		msgbox Запускаю умное копирование из Унифицированного Реестра
 		send {esc}{home}{tab 2}
-		contragent := copy()
-		msgbox % contragent
+		contragent := copy() 
 		send {tab}
-		invoice := copy()
-		msgbox % invoice
+		invoice := copy() 
 		send {tab}
 		ticket_comment := RegExReplace(copy(), " R:.*", "")	;Комментарий	
-		msgbox % ticket_comment
 		send {tab}
-		ticket_sum := RegExReplace(copy(), " ", "")
-		msgbox % ticket_sum
+		ticket_sum := copy()
 		send {tab}
 		container := copy()
-		msgbox % container
 		send {tab 2}	;пропущен коносамент/cmr
-		order := RegExReplace(copy(), " ", "")
-		msgbox % order
+		order := copy()
 		send {tab 3}
-		ticket := RegExReplace(copy(), " ", "")
-		msgbox % ticket
-		msgbox копирование завершено
+		ticket := Trim(copy(), "`n`r`t ")
+		msgbox КА: %contragent%`nИнвойс: %invoice%`nКомментарий: %ticket_comment%`nСумма: %ticket_sum%`nКонтейнер: %container%`nЗаказ: %order%`nНомер счёта: %ticket%
 	}
+
 	
 	else{
 		msgbox умное копирование пока доступно только из пту 1с, УР или заявки OTRS
@@ -197,51 +231,69 @@ return
 {
 	setTitleMatchMode 2
 	if WinActive("Access - Учет претензий КА"){
-	msgbox только Таможенная очистка, ок?
-	;---УПКА - Доп.услуги - Таможенная очистка
-	send {tab}{home}
-	clipboard = %org%
-	send ^v
-	sleep 200
-	send {right 5}	;дату вставлять будем в дневное время, ок?
-	;send % (a_hour < 16) and (a_hour > 6)? "" : ""	;%a_dd%.%a_mm%.%a_yyyy%
-	send {right}
-	clipboard = %contragent%
-	send ^v
-	sleep 200
-	send {right 2}	;наим поставщика (всегда пусто), страна
-	clipboard = %ca_country%
-	sleep 400
-	send ^v {right}
-	sleep 200
-	clipboard = %order%
-	send ^v {right}
-	sleep 200
-	clipboard = %invoice%
-	send ^v{tab}
-	sleep 200
-	send 1
-	sleep 200
-	send {tab}
-	sleep 200
-	clipboard = %ticket%
-	sleep 400
-	send ^v
-	send {tab}
-	sleep 200
-	clipboard = %ticket_date%
-	sleep 300
-	send ^v
-	send {tab}
-	sleep 200
-	clipboard = %curr%
-	send ^v
-	sleep 200
-	send {tab 4}
-	clipboard = %ticket_comment%
-	send ^v{home}
+		;---
+		gui add, radio, vCustClean, Таможенная очистка
+		gui add, radio, vDopServImp, Доп.с.проверка (импорт)
+		gui add, Button, default gPaste, OK
+		gui show
+		
+		Exit
+		Paste:
+			Gui Submit
+		gui destroy
+		if CustClean{
+			;---УПКА - Доп.услуги - Таможенная очистка
+			send {tab}{home}
+			clipboard = %org%
+			send ^v
+			sleep 200
+			send {right 5}	;дату вставлять будем в дневное время, ок?
+			;send % (a_hour < 16) and (a_hour > 6)? "" : ""	;%a_dd%.%a_mm%.%a_yyyy%
+			send {right}
+			clipboard = %contragent%
+			send ^v
+			sleep 200
+			send {right 2}	;наим поставщика (всегда пусто), страна
+			clipboard = %ca_country%
+			sleep 400
+			send ^v {right}
+			sleep 200
+			clipboard = %order%
+			send ^v {right}
+			sleep 200
+			clipboard = %invoice%
+			send ^v{tab}
+			sleep 200
+			send 1
+			sleep 200
+			send {tab}
+			sleep 200
+			clipboard = %ticket%
+			sleep 400
+			send ^v
+			send {tab}
+			sleep 200
+			clipboard = %ticket_date%
+			sleep 300
+			send ^v
+			send {tab}
+			sleep 200
+			clipboard = %curr%
+			send ^v
+			sleep 200
+			send {tab 4}
+			clipboard = %ticket_comment%
+			send ^v{home}
+			; удаление глобальных переменных (пиздец костыль)
+			;gui destroy
+			return
+		}
+		else {
+			msgbox Не таможенная очистка
+			;gui destroy
+			return
+		}
 	}
-	return
 }
 
 ;---Назначаю Alt+Q сочетанием заполнения Excel-шаблонов---;
@@ -249,10 +301,8 @@ return
 {	
 	if WinActive("Сертификат происхождения товара.xlsm - Excel")
 	{
-		; потенциальные проблемы: отсутствие ГТД в 1С в поступлениях
-		; необходимость ссылки 
-		; проблема долгого открытия 1с
-		;возможность оптимизации: добавить чтение зеленых ячеек из гтд 1с, запилить авто преференции
+
+		;возможность оптимизации: можно будет запилить автопроставление преференции
 		msgbox Запустить заполнение шаблона "Сертификат"
 		;проставляем дату
 		send {esc}^g 
@@ -270,7 +320,7 @@ return
 		sleep 200
 		;переход в 1с
 		setTitleMatchMode 2		
-		inputbox url
+		inputbox url,Заполнение шаблона "Сертификат, Вставьте внешнюю ссылку `nна поступление товаров и услуг
 		run "C:\Program Files\1cv8\common\1cestart.exe" /URL "%url%", C:\Program Files\1cv8\common
 		;sleep 500
 		winwait База ahk_exe 1cv8c.exe
@@ -315,22 +365,26 @@ return
 			;--- этот кусок будет работать только при нормальной скорости работы 1с и буфера обмена windows
 			send ^fгтд 
 			send {enter}
-			sleep 500
+			sleep 300
 			;буфер обмена после поиска
 			send ^c
-			sleep 500
+			sleep 300
 			
 			if (clipboard = product){
 				msgbox ГТД не найдена, сорян.
-				send {esc}
+				send {esc 2}
 				send {tab 39}
-				product_cost := RegExReplace(copy(), " ", "")
-				send {esc}
-				
+				product_cost := StrReplace(copy(), " ", "", 1)
+				cust := ""
+				gtd := ""
+				cust_tax := ""
+				nds := ""
+				cust_cost := ""
 			}
 			else{
-				tooltip
+			; добавить поиск по строке подстроки гтд с булевым выводом
 				send {enter}
+
 				sleep 1000
 				send {tab 5}
 				cust := copy()
@@ -343,13 +397,12 @@ return
 				nds := RegExReplace(copy(), "%", "")	;ставка ндс
 				sleep 200
 				send {tab 2}
-				cust_cost := copy()	; таможенная стоимость
+				cust_cost := StrReplace(copy(), " ", "", 1)	; таможенная стоимость
 				sleep 200
 				;----
 				send {esc 2}
 				send {tab 39}
-				product_cost := RegExReplace(copy(), " ", "")
-				send {esc}
+				product_cost := StrReplace(copy(), " ", "", 1)
 			}
 			
 			; ---вставка данных
@@ -372,10 +425,10 @@ return
 			winwait Переход
 			send {raw}Расчет!U7
 			send {enter}
-			sleep 200
 			clipboard = %curr%
+			sleep 400
 			send ^v
-			; заполнение листа РП
+			; заполнение листа РП		
 			sleep 200
 			send {esc}^g 
 			winwait Переход
@@ -401,34 +454,31 @@ return
 			winwait Переход
 			send {raw}Расчет!S11
 			send {enter}
-			sleep 200
 			clipboard = %product_cost%
-			sleep 200
+			sleep 400
 			send ^v
 			send {esc}^g 
 			winwait Переход
 			send {raw}Расчет!K7
 			send {enter}
-			sleep 200
 			clipboard = %cust_tax%
-			sleep 200
+			sleep 400
 			send ^v
 			sleep 200
 			send {tab 2}
-			sleep 200
 			clipboard = %nds%
-			sleep 200
+			sleep 400
 			send ^v
 			sleep 200
 			send {esc}^g 
 			winwait Переход
 			send {raw}Расчет!J7
 			send {enter}
-			sleep 200
 			clipboard = %cust_cost%
-			sleep 200
+			sleep 400
 			send ^v
 			sleep 200
+			send {tab}
 			
 		
 			msgbox заполнение завершено
@@ -458,7 +508,6 @@ return
 		winwait База ahk_exe 1cv8c.exe
 		winActivate
 		send !c
-		msgbox вставка данных
 		WinActivate Хранение (РЦ).xlsm - Excel 
 		winwaitActive Хранение (РЦ).xlsm - Excel
 		send {enter}^g 
@@ -475,11 +524,7 @@ return
 		winwait Переход
 		send {raw}Расчет!J7
 		send {enter}
-		sleep 200
-		clipboard = %curr%
-		sleep 200
-		send ^v
-		sleep 200
+		send % curr
 		;Заполнение листа РП
 		send {esc}^g 
 		winwait Переход
@@ -504,8 +549,65 @@ return
 		send {tab 2}
 		send %invoice_date%
 		sleep 200
-		
+		msgbox Вставка завершена
 		clipboard := url
 		return 
 	}
 }
+
+;--- Alt+Shift+F - Фильтрация по имени и статусу (пока только в Access)
+!+f::
+{
+	gui destroy
+	if WinActive("Access - Учет претензий КА"){
+		; ---
+		gui add, radio, vUPKA, Учет Претензий
+		gui add, radio, vDopRash, Доп расходы
+		gui add, Button, default gAccessFilter, OK
+		gui show
+		
+		Exit
+		AccessFilter:
+			Gui Submit
+		if UPKA{
+			; ---
+			send {tab}
+			send {home}{right 3}
+			send +{f10}
+			sleep 200
+			send {down 7}
+			sleep 200
+			send {enter 2}
+			sleep 200
+			send Карпенко Татьяна Ильинична
+			sleep 200
+			send {enter}
+			sleep 200
+			send {tab 2}
+			sleep 200
+			send +{f10}
+			sleep 200
+			send {down 7}
+			sleep 200
+			send {enter 2}
+			sleep 200
+			send В работе
+			sleep 200
+			send {enter}
+			sleep 200
+			send +{tab}
+			sleep 200
+			send +{f10}
+			send {down 4}{enter}
+			sleep 200
+			loop 2
+				send +{tab}
+			msgbox фильтрация завершена
+			return
+		}
+		else {
+			msgbox самофильтрация доступна только для таблицы Учет Претензий (пока что)
+		}
+	}
+}
+
