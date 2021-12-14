@@ -67,7 +67,12 @@ return
 ^6:: send % transport_doc
 ^+6:: send % transport_doc_date
 ^7:: send % product
-^8:: send % org 
+^8:: 
+{
+	clipboard = %org% 
+	send ^v
+	return
+} 
 ^+8:: 
 {
 	if (org = "Ритейл Импорт ООО") {
@@ -78,7 +83,7 @@ return
 	}
 	return
 }
-!r::
+!r::	;--- апгрейд ярлыка на пту 1с 
 {
 	if WinActive("Свойства: пту"){
 		send {right}{left}
@@ -93,15 +98,27 @@ return
 	}
 	return
 }
-
-; !w::
-; {
-	; loop 1000{
-	; send waiting
-	; sleep 20000
-	; }
-	; return
-; }
+ 
+^+Space::	;--- вставка текста в Outlook как гиперссылки
+{
+	if WinActive("ahk_exe OUTLOOK.exe"){
+		send +{f10}{up}{enter}
+		send ^v
+		send {enter}
+	}
+	
+	return
+}
+!w::
+{
+	loop 1000{
+	MouseMove, 1, 0, 50, R
+	sleep 30000
+	MouseMove, -1, 0, 50, R
+	sleep 30000
+	}
+	return
+}
 
 ;---Назначаю Alt+c сочетанием "умного копирования"
 !c::
@@ -227,74 +244,84 @@ return
 	return
 }
 ;---Назначаю Alt+V сочетанием для "умной вставки" данных в Access, расчёты 1с, запросы к подразделениям итп
-!v:: 
-{
-	setTitleMatchMode 2
-	if WinActive("Access - Учет претензий КА"){
-		;---
-		gui add, radio, vCustClean, Таможенная очистка
-		gui add, radio, vDopServImp, Доп.с.проверка (импорт)
-		gui add, Button, default gPaste, OK
-		gui show
+; !v:: 
+; {
+	; setTitleMatchMode 2
+	; if WinActive("Access - Учет претензий КА"){
+		;;---
+		; gui add, radio, vCustClean, Таможенная очистка
+		; gui add, radio, vDopServImp, Доп.с.проверка (импорт)
+		; gui add, Button, default gPaste, OK
+		; gui show
 		
-		Exit
-		Paste:
-			Gui Submit
-		gui destroy
-		if CustClean{
-			;---УПКА - Доп.услуги - Таможенная очистка
-			send {tab}{home}
-			clipboard = %org%
-			send ^v
-			sleep 200
-			send {right 5}	;дату вставлять будем в дневное время, ок?
-			;send % (a_hour < 16) and (a_hour > 6)? "" : ""	;%a_dd%.%a_mm%.%a_yyyy%
-			send {right}
-			clipboard = %contragent%
-			send ^v
-			sleep 200
-			send {right 2}	;наим поставщика (всегда пусто), страна
-			clipboard = %ca_country%
-			sleep 400
-			send ^v {right}
-			sleep 200
-			clipboard = %order%
-			send ^v {right}
-			sleep 200
-			clipboard = %invoice%
-			send ^v{tab}
-			sleep 200
-			send 1
-			sleep 200
-			send {tab}
-			sleep 200
-			clipboard = %ticket%
-			sleep 400
-			send ^v
-			send {tab}
-			sleep 200
-			clipboard = %ticket_date%
-			sleep 300
-			send ^v
-			send {tab}
-			sleep 200
-			clipboard = %curr%
-			send ^v
-			sleep 200
-			send {tab 4}
-			clipboard = %ticket_comment%
-			send ^v{home}
-			; удаление глобальных переменных (пиздец костыль)
-			;gui destroy
-			return
-		}
-		else {
-			msgbox Не таможенная очистка
-			;gui destroy
-			return
-		}
-	}
-}
+		; Exit
+		; Paste:
+			; Gui Submit
+		; gui destroy
+		; if CustClean{
+			;;---УПКА - Доп.услуги - Таможенная очистка
+			; send {up}{down}
+			; send {tab}{home}
+			; clipboard = %org%
+			; send ^v
+			; sleep 200
+			; send {tab} 
+			; clipboard = Таможенная очистка
+			; sleep 200
+			; send ^v 
+			; sleep 200
+			; send {right 4}	;дату вставлять будем в дневное время, ок?
+			;;send % (a_hour < 16) and (a_hour > 6)? "" : ""	;%a_dd%.%a_mm%.%a_yyyy%
+			; send {right}
+			; clipboard = %contragent%
+			; send ^v
+			; sleep 200
+			; send {right 2}	;наим поставщика (всегда пусто), страна
+			; clipboard = %ca_country%
+			; sleep 400
+			; send ^v {right}
+			; sleep 200
+			; clipboard = %order%
+			; send ^v {right}
+			; sleep 200
+			; clipboard = %invoice%
+			; send ^v{tab}
+			; sleep 200
+			; send 1
+			; sleep 200
+			; send {tab}
+			; sleep 200
+			; clipboard = %ticket%
+			; sleep 200
+			; if (clipboard = ""){
+				; clipboard = `&
+			; }
+			; sleep 400
+			; send ^v
+			; send {tab}
+			; sleep 200
+			; clipboard = %ticket_date%
+			; sleep 300
+			; send ^v
+			; send {tab}
+			; sleep 200
+			; clipboard = %curr%
+			; send ^v
+			; sleep 200
+			; send {tab 4}
+			; clipboard = %ticket_comment%
+			; send ^v{home}
+			;;удаление глобальных переменных (пиздец костыль)
+			;;gui destroy
+			; return
+		; }
+		; else {
+			; msgbox Не таможенная очистка
+			;;gui destroy
+			; return
+		; }
+	; }
+; }
 
 ;---Назначаю Alt+Q сочетанием заполнения Excel-шаблонов---;
 !q:: 
@@ -303,7 +330,7 @@ return
 	{
 
 		;возможность оптимизации: можно будет запилить автопроставление преференции
-		msgbox Запустить заполнение шаблона "Сертификат"
+		msgbox Запущено заполнение шаблона "Сертификат"
 		;проставляем дату
 		send {esc}^g 
 		winwait Переход
@@ -318,9 +345,8 @@ return
 		send {raw}Расчет!A7
 		send {enter}
 		sleep 200
-		;переход в 1с
-		setTitleMatchMode 2		
-		inputbox url,Заполнение шаблона "Сертификат, Вставьте внешнюю ссылку `nна поступление товаров и услуг
+		;переход в 1с	
+		inputbox url,Заполнение шаблона "Сертификат", Вставьте внешнюю ссылку `nна поступление товаров и услуг
 		run "C:\Program Files\1cv8\common\1cestart.exe" /URL "%url%", C:\Program Files\1cv8\common
 		;sleep 500
 		winwait База ahk_exe 1cv8c.exe
@@ -349,7 +375,7 @@ return
 			send {tab 2}
 			org := copy()
 			send {tab 2}
-			curr := copy()	;валюта
+			curr := StrReplace(copy(), " ", "", 1)	;валюта
 			send {tab 4}
 			invoice_date := copy()
 			send {tab}
@@ -492,7 +518,7 @@ return
 		return
 	}
 	else if WinActive("Хранение (РЦ).xlsm - Excel"){
-		msgbox Запустить заполнение шаблона "Хранение (РЦ)"
+		msgbox Запущено заполнение шаблона "Хранение (РЦ)"
 		;проставляем дату
 		send {esc}^g 
 		winwait Переход
@@ -502,7 +528,7 @@ return
 		send %a_dd%.%a_mm% 
 		sleep 100	
 		;переход в 1с
-		inputbox url
+		inputbox url,Заполнение шаблона "Хранение рц", Вставьте внешнюю ссылку `nна поступление товаров и услуг
 		run "C:\Program Files\1cv8\common\1cestart.exe" /URL "%url%", C:\Program Files\1cv8\common
 		;sleep 500
 		winwait База ahk_exe 1cv8c.exe
@@ -553,6 +579,26 @@ return
 		clipboard := url
 		return 
 	}
+
+	else if WinActive("Демередж-Хранение.xlsm - Excel"){
+		msgbox Запускаю заполнение шаблона "Демередж-Хранение"
+		; добавить чеклист на заполнение листов "Расчет_Демередж" и "Хранение"
+		;добавить в инструкцию точное заполнение полей из реестра пока помню
+		;проставляем дату
+		send {esc}^g 
+		winwait Переход
+		send {raw}Расчет_Демередж!F2
+		send {enter}
+		sleep 200
+		send %a_dd%.%a_mm% 
+		sleep 100	
+		send {enter}
+		;переход в 1с
+		inputbox url,Заполнение шаблона "Демередж-Хранение", Вставьте внешнюю ссылку `nна поступление товаров и услуг
+	}
+	else {
+		msgbox для этого типа шаблона автоматизация ещё не добавлена
+	}
 }
 
 ;--- Alt+Shift+F - Фильтрация по имени и статусу (пока только в Access)
@@ -561,10 +607,11 @@ return
 	gui destroy
 	if WinActive("Access - Учет претензий КА"){
 		; ---
-		gui add, radio, vUPKA, Учет Претензий
-		gui add, radio, vDopRash, Доп расходы
+		gui add, radio, vUPKA, Учет Претензий / Оборудование
+		gui add, radio, vDopRash, Доп расходы / Демередж-Хранение / Сертификат / Транспорт
 		gui add, Button, default gAccessFilter, OK
 		gui show
+		send {down}{up}
 		
 		Exit
 		AccessFilter:
@@ -603,6 +650,41 @@ return
 			loop 2
 				send +{tab}
 			msgbox фильтрация завершена
+			return
+		}
+		else if DopRash {
+			send {tab}
+			send {home}{right 2}
+			send +{f10}
+			sleep 200
+			send {down 7}
+			sleep 200
+			send {enter 2}
+			sleep 200
+			send Карпенко Татьяна Ильинична
+			sleep 200
+			send {enter}
+			sleep 200
+			send {tab 2}
+			sleep 200
+			send +{f10}
+			sleep 200
+			send {down 7}
+			sleep 200
+			send {enter 2}
+			sleep 200
+			send В работе
+			sleep 200
+			send {enter}
+			sleep 200
+			send +{tab}
+			sleep 200
+			send +{f10}
+			send {down 4}{enter}
+			sleep 200
+			loop 2
+				send +{tab}
+			msgbox фильтрация завершена	
 			return
 		}
 		else {
