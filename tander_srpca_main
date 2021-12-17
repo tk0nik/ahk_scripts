@@ -109,16 +109,7 @@ return
 	
 	return
 }
-!w::
-{
-	loop 1000{
-	MouseMove, 1, 0, 50, R
-	sleep 30000
-	MouseMove, -1, 0, 50, R
-	sleep 30000
-	}
-	return
-}
+
 
 ;---Назначаю Alt+c сочетанием "умного копирования"
 !c::
@@ -585,21 +576,23 @@ return
 		; добавить чеклист на заполнение листов "Расчет_Демередж" и "Хранение"
 		;добавить в инструкцию точное заполнение полей из реестра пока помню
 		;проставляем дату
-		send {esc}^g 
-		winwait Переход
-		send {raw}Расчет_Демередж!F2
-		send {enter}
-		sleep 200
-		send %a_dd%.%a_mm% 
-		sleep 100	
-		send {enter}
+		; send {esc}^g 
+		; winwait Переход
+		; send {raw}Расчет_Демередж!F2
+		; send {enter}
+		; sleep 200
+		; send %a_dd%.%a_mm% 
+		; sleep 100	
+		; send {enter}
 		;переход в 1с
-		inputbox url,Заполнение шаблона "Демередж-Хранение", Вставьте внешнюю ссылку `nна поступление товаров и услуг
+		;inputbox url,Заполнение шаблона "Демередж-Хранение", Вставьте внешнюю ссылку `nна поступление товаров и услуг
 	}
 	else {
 		msgbox для этого типа шаблона автоматизация ещё не добавлена
 	}
+	return
 }
+
 
 ;--- Alt+Shift+F - Фильтрация по имени и статусу (пока только в Access)
 !+f::
@@ -649,7 +642,6 @@ return
 			sleep 200
 			loop 2
 				send +{tab}
-			msgbox фильтрация завершена
 			return
 		}
 		else if DopRash {
@@ -692,4 +684,48 @@ return
 		}
 	}
 }
+;--- консоль читкодов
+
+#c::
+{
+	inputbox command, Введите команду
+	if (command = "-m"){	;-m means Morning
+		run "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Outlook 2016.lnk"
+		winwait Outlook
+		winActivate
+		sleep 200
+		send #d
+		sleep 200
+		run "e:\Users\karpenko_ti\Desktop\Начало рабочего дня.oft"
+		winwait Начало рабочего дня
+		winActivate
+		send ^{enter}
+		run "e:\Users\karpenko_ti\Desktop\Учет претензий КА 4.1 (47) 16.09.2021_архив.accdb"
+		winwait Access - Учет претензий КА
+		winActivate Access - Учет претензий 
+		loop 3
+			send +{tab}
+		send {enter}
+		sleep 200
+		send !+f
+		winwait test.ahk
+		send {enter}
+		run "R:\Документы по потерям-претензии и штрафы\Сектор учета взаиморасчетов по претензиям и штрафам\Сотрудники ОКРВД\Карпенко\ПРЕТЕНЗИИ"
+		; loop files, R:\Документы по потерям-претензии и штрафы\Сектор учета взаиморасчетов по претензиям и штрафам\Сотрудники ОКРВД\Карпенко\ПРЕТЕНЗИИ\*, D
+			; msgbox %a_loopfilename%
+		return
+	}
+	else if (command = "-w"){
+		loop 10000
+			{
+			MouseMove, 1, 0, 50, R
+			sleep 3000
+			MouseMove, -1, 0, 50, R
+			sleep 3000
+			}
+		return
+	}
+	
+}
+
 
